@@ -115,6 +115,13 @@ function displayUsers(res) {
     res.end();
 }
 
+function displayRawData(res) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.write(JSON.stringify({ loginCount, users }));
+    res.end();
+}
+
+
 async function startServer() {
     await loadDataFromS3(); // Load data from S3 before starting the server
 
@@ -123,6 +130,8 @@ async function startServer() {
             handleLogin(req, res);
         } else if (req.url === '/users') {
             displayUsers(res);
+        } else if (req.url === '/raw') {
+            displayRawData(res);
         } else {
             displayLoginForm(res, loginCount);
         }
@@ -135,5 +144,6 @@ async function startServer() {
         console.log(`Server running at http://localhost:${PORT}/`);
     });
 }
+
 
 startServer();
