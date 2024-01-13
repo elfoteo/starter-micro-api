@@ -1,10 +1,61 @@
 const http = require('http');
 const { parse } = require('querystring');
+const fetch = require('node-fetch');
+
+const githubRepoUrl = 'https://api.github.com/repos/elfoteo/MinesweeperHostingFiles/contents/data.json';
+const githubApiToken = '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'; // Replace with your GitHub API token
+
+async function fetchDataFromGitHub() {
+    try {
+        const response = await fetch(githubRepoUrl, {
+            headers: {
+                'Authorization': `Bearer ${githubApiToken}`
+            }
+        });
+        const data = await response.json();
+        const decodedContent = Buffer.from(data.content, 'base64').toString('utf-8');
+        return JSON.parse(decodedContent);
+    } catch (error) {
+        console.error('Error fetching data from GitHub:', error);
+        return null;
+    }
+}
+
+async function saveDataToGitHub(data) {
+    try {
+        const currentData = await fetchDataFromGitHub();
+        const encodedContent = Buffer.from(JSON.stringify({ ...currentData, ...data })).toString('base64');
+
+        await fetch(githubRepoUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${githubApiToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: 'Update data.json',
+                content: encodedContent,
+                sha: currentData.sha,
+            }),
+        });
+
+        console.log('Data saved to GitHub.');
+    } catch (error) {
+        console.error('Error saving data to GitHub:', error);
+    }
+}
 
 let loginCount = 0;
 let users = [];
 
-function startServer() {
+async function startServer() {
+    // Fetch initial data from GitHub
+    const initialData = await fetchDataFromGitHub();
+    if (initialData) {
+        loginCount = initialData.loginCount;
+        users = initialData.users;
+    }
+
     const server = http.createServer((req, res) => {
         if (req.method === 'POST') {
             handleLogin(req, res);
@@ -21,13 +72,14 @@ function startServer() {
             body += chunk.toString();
         });
 
-        req.on('end', () => {
+        req.on('end', async () => {
             const formData = parse(body);
             const username = formData.username;
 
             if (username) {
                 users.push(username);
                 loginCount++;
+                await saveDataToGitHub({ loginCount, users });
                 res.writeHead(302, { 'Location': '/' });
                 res.end();
             } else {
