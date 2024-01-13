@@ -121,13 +121,41 @@ function displayRawData(res) {
     res.end();
 }
 
+function handleSubmit(req, res) {
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+        const formData = JSON.parse(body);
+        const { username, score, time, difficulty } = formData;
+
+        if (username && score && time && difficulty) {
+            users.push({ username, score, time, difficulty });
+            loginCount++;
+            await saveDataToS3();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({ success: true, message: 'Data submitted successfully.' }));
+            res.end();
+        } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.write(JSON.stringify({ success: false, message: 'Invalid input.' }));
+            res.end();
+        }
+    });
+}
 
 async function startServer() {
     await loadDataFromS3(); // Load data from S3 before starting the server
 
     const server = http.createServer((req, res) => {
         if (req.method === 'POST') {
-            handleLogin(req, res);
+            if (req.url === '/submit') {
+                handleSubmit(req, res);
+            } else {
+                handleLogin(req, res);
+            }
         } else if (req.url === '/users') {
             displayUsers(res);
         } else if (req.url === '/raw') {
@@ -144,6 +172,7 @@ async function startServer() {
         console.log(`Server running at http://localhost:${PORT}/`);
     });
 }
+
 
 
 startServer();
