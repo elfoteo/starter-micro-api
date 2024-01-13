@@ -2,23 +2,16 @@ const http = require('http');
 const fs = require('fs');
 const { parse } = require('querystring');
 
-const TMP_DIR = 'tmp';  // Define the tmp directory
-
 let loginCount = 0;
 let users = [];
 
-// Ensure the tmp directory exists
-if (!fs.existsSync(TMP_DIR)) {
-    fs.mkdirSync(TMP_DIR);
-}
-
 // Read the login count and users from files on server start
-fs.readFile(`${TMP_DIR}/loginCount.txt`, 'utf8', (err, data) => {
+fs.readFile('tmp/loginCount.txt', 'utf8', (err, data) => {
     if (!err) {
         loginCount = parseInt(data) || 0;
     }
 
-    fs.readFile(`${TMP_DIR}/users.json`, 'utf8', (err, data) => {
+    fs.readFile('tmp/users.json', 'utf8', (err, data) => {
         if (!err) {
             users = JSON.parse(data) || [];
         }
@@ -110,13 +103,13 @@ function startServer() {
 }
 
 function saveDataToFiles() {
-    fs.writeFile(`${TMP_DIR}/loginCount.txt`, loginCount.toString(), 'utf8', (err) => {
+    fs.writeFile('tmp/loginCount.txt', loginCount.toString(), 'utf8', (err) => {
         if (err) {
             console.error('Error saving login count to file:', err);
         }
     });
 
-    fs.writeFile(`${TMP_DIR}/users.json`, JSON.stringify(users), 'utf8', (err) => {
+    fs.writeFile('tmp/users.json', JSON.stringify(users), 'utf8', (err) => {
         if (err) {
             console.error('Error saving users to file:', err);
         }
