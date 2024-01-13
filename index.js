@@ -1,61 +1,15 @@
 const http = require('http');
 const { parse } = require('querystring');
-const fetch = require('node-fetch');
+const AWS = require('aws-sdk');
 
-const githubRepoUrl = 'https://api.github.com/repos/elfoteo/MinesweeperHostingFiles/contents/data.json';
-const githubApiToken = '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'; // Replace with your GitHub API token
-
-async function fetchDataFromGitHub() {
-    try {
-        const response = await fetch(githubRepoUrl, {
-            headers: {
-                'Authorization': `Bearer ${githubApiToken}`
-            }
-        });
-        const data = await response.json();
-        const decodedContent = Buffer.from(data.content, 'base64').toString('utf-8');
-        return JSON.parse(decodedContent);
-    } catch (error) {
-        console.error('Error fetching data from GitHub:', error);
-        return null;
-    }
-}
-
-async function saveDataToGitHub(data) {
-    try {
-        const currentData = await fetchDataFromGitHub();
-        const encodedContent = Buffer.from(JSON.stringify({ ...currentData, ...data })).toString('base64');
-
-        await fetch(githubRepoUrl, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${githubApiToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: 'Update data.json',
-                content: encodedContent,
-                sha: currentData.sha,
-            }),
-        });
-
-        console.log('Data saved to GitHub.');
-    } catch (error) {
-        console.error('Error saving data to GitHub:', error);
-    }
-}
+// Create an S3 instance
+const s3 = new AWS.S3();
+const bucketName = 'cyclic-bewildered-shoulder-pads-newt-eu-west-3';
 
 let loginCount = 0;
 let users = [];
 
-async function startServer() {
-    // Fetch initial data from GitHub
-    const initialData = await fetchDataFromGitHub();
-    if (initialData) {
-        loginCount = initialData.loginCount;
-        users = initialData.users;
-    }
-
+function startServer() {
     const server = http.createServer((req, res) => {
         if (req.method === 'POST') {
             handleLogin(req, res);
@@ -79,7 +33,7 @@ async function startServer() {
             if (username) {
                 users.push(username);
                 loginCount++;
-                await saveDataToGitHub({ loginCount, users });
+                await saveDataToS3();
                 res.writeHead(302, { 'Location': '/' });
                 res.end();
             } else {
@@ -88,7 +42,7 @@ async function startServer() {
         });
     }
 
-    function displayLoginForm(res, count, message = '') {
+    async function displayLoginForm(res, count, message = '') {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.write(`
             <html>
@@ -128,6 +82,22 @@ async function startServer() {
             </html>
         `);
         res.end();
+    }
+
+    async function saveDataToS3() {
+        const s3Params = {
+            Bucket: bucketName,
+            Key: 'userdata.json', // Set the key (filename) in S3
+            Body: JSON.stringify({ loginCount, users }),
+            ContentType: 'application/json',
+        };
+
+        try {
+            await s3.putObject(s3Params).promise();
+            console.log('Data saved to S3.');
+        } catch (error) {
+            console.error('Error saving data to S3:', error);
+        }
     }
 
     const PORT = process.env.PORT || 3000;
