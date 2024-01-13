@@ -6,12 +6,12 @@ let loginCount = 0;
 let users = [];
 
 // Read the login count and users from files on server start
-fs.readFile('loginCount.txt', 'utf8', (err, data) => {
+fs.readFile('tmp/loginCount.txt', 'utf8', (err, data) => {
     if (!err) {
         loginCount = parseInt(data) || 0;
     }
 
-    fs.readFile('users.json', 'utf8', (err, data) => {
+    fs.readFile('tmp/users.json', 'utf8', (err, data) => {
         if (!err) {
             users = JSON.parse(data) || [];
         }
@@ -103,13 +103,13 @@ function startServer() {
 }
 
 function saveDataToFiles() {
-    fs.writeFile('loginCount.txt', loginCount.toString(), 'utf8', (err) => {
+    fs.writeFile('tmp/loginCount.txt', loginCount.toString(), 'utf8', (err) => {
         if (err) {
             console.error('Error saving login count to file:', err);
         }
     });
 
-    fs.writeFile('users.json', JSON.stringify(users), 'utf8', (err) => {
+    fs.writeFile('tmp/users.json', JSON.stringify(users), 'utf8', (err) => {
         if (err) {
             console.error('Error saving users to file:', err);
         }
