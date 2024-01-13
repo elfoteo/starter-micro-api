@@ -53,20 +53,19 @@ function handleLogin(req, res) {
 
     req.on('end', async () => {
         const formData = parse(body);
-        const username = formData.username;
+        const { username, score, time, difficulty } = formData;
 
-        if (username) {
-            users.push(username);
+        if (username && score && time && difficulty) {
+            users.push({ username, score, time, difficulty });
             loginCount++;
             await saveDataToS3();
             res.writeHead(302, { 'Location': '/' });
             res.end();
         } else {
-            displayLoginForm(res, loginCount, 'Invalid username');
+            displayLoginForm(res, loginCount, 'Invalid input');
         }
     });
 }
-
 
 async function displayLoginForm(res, count, message = '') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -82,6 +81,12 @@ async function displayLoginForm(res, count, message = '') {
             <form method="post">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
+                <label for="score">Score:</label>
+                <input type="text" id="score" name="score" required>
+                <label for="time">Time:</label>
+                <input type="text" id="time" name="time" required>
+                <label for="difficulty">Difficulty:</label>
+                <input type="text" id="difficulty" name="difficulty" required>
                 <button type="submit">Login</button>
             </form>
             <p><a href="/users">View Users</a></p>
@@ -101,7 +106,7 @@ function displayUsers(res) {
         <body>
             <h1>User List</h1>
             <ul>
-                ${users.map(user => `<li>${user}</li>`).join('')}
+                ${users.map(user => `<li>${user.username} - Score: ${user.score}, Time: ${user.time}, Difficulty: ${user.difficulty}</li>`).join('')}
             </ul>
             <p><a href="/">Back to Login</a></p>
         </body>
